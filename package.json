@@ -1,6 +1,6 @@
 {
   "name": "okey-dokey",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "大模型 API 密钥保险库 / LLM API key vault — 本机加密存储、服务商筛选、备注、主题自定义、中英双语",
   "main": "src/main/index.js",
   "type": "commonjs",

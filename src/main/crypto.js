@@ -58,12 +58,13 @@ function keyFromPassphrase(passphrase, salt) {
   return crypto.scryptSync(passphrase, salt, 32, { N: 1 << 15, r: 8, p: 1, maxmem: 128 * 1024 * 1024 });
 }
 
-function encryptWithPassphrase(obj, passphrase) {
+function encryptWithPassphrase(obj, passphrase, meta) {
   const salt = crypto.randomBytes(16);
   const iv = crypto.randomBytes(12);
   const key = keyFromPassphrase(passphrase, salt);
   const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
   const body = Buffer.concat([cipher.update(Buffer.from(JSON.stringify(obj), 'utf8')), cipher.final()]);
+  const m = meta || {};
   return {
     format: 'okey-dokey-export',
     version: 1,
@@ -71,7 +72,13 @@ function encryptWithPassphrase(obj, passphrase) {
     salt: salt.toString('base64'),
     iv: iv.toString('base64'),
     tag: cipher.getAuthTag().toString('base64'),
-    data: body.toString('base64')
+    data: body.toString('base64'),
+    // 附加元信息：解析器只读上面 7 个字段，多余字段被忽略。
+    // 让备份包自带「谁导出、何时、几条」，便于跨设备迁移时核对。
+    createdAt: m.createdAt || new Date().toISOString(),
+    producer: m.producer || 'okey-dokey',
+    producerVersion: m.producerVersion || '',
+    recordCount: m.recordCount != null ? m.recordCount : undefined
   };
 }
 

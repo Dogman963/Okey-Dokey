@@ -199,7 +199,11 @@ handle('vault:export', async (opts) => {
   if (res.canceled || !res.filePath) return { canceled: true };
   if (encrypted) {
     if (!o.passphrase || String(o.passphrase).length < 6) throw new Error('WEAK_PASSPHRASE');
-    const pkg = encryptWithPassphrase(payload, String(o.passphrase));
+    const pkg = encryptWithPassphrase(payload, String(o.passphrase), {
+      producer: 'okey-dokey-desktop',
+      producerVersion: app.getVersion(),
+      recordCount: payload.records.length
+    });
     fs.writeFileSync(res.filePath, JSON.stringify(pkg, null, 2), 'utf8');
   } else {
     fs.writeFileSync(res.filePath, JSON.stringify(payload, null, 2), 'utf8');
