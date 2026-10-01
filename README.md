@@ -27,9 +27,9 @@ okey-dokey/
 │  │  ├─ app.js               列表、筛选、编辑、设置、主题、双语
 │  │  └─ i18n.js              中英词条
 │  └─ shared/
-│     └─ providers.js       24 家服务商目录（主进程与界面共用）
+│     └─ providers.js       22 家服务商目录 + 自建（主进程与界面共用）
 ├─ scripts/                 开发与验证脚本（不进入发布包）
-│  ├─ smoke.js                端到端界面冒烟测试（18 项）
+│  ├─ smoke.js                端到端界面冒烟测试
 │  ├─ screenshot.js           生成界面截图
 │  ├─ bench-startup.ps1       启动耗时基准测试
 │  ├─ test-doubleclick.ps1    目录版真实启动方式验证
@@ -64,10 +64,12 @@ okey-dokey/
 
 | 平台 | 文件 | 说明 |
 | --- | --- | --- |
-| **安卓** | `Okey-Dokey-1.1.0.apk` | 签名安装包，Android 7.0（API 24）及以上，直接安装 |
-| **Windows** | `Okey-Dokey-Setup-1.1.0.exe` | 安装版，带开始菜单与桌面快捷方式 |
+| **安卓** | `Okey-Dokey-1.2.4.apk` | 签名安装包，Android 7.0（API 24）及以上，直接安装 |
+| **Windows** | `Okey-Dokey-Setup-1.2.4.exe` | 安装版，带开始菜单与桌面快捷方式 |
 
 两个文件的 SHA256 校验值见对应的 Release 页面说明。
+
+> 每次发版的**具体版本号以 Releases 页面为准**；上表填的是当前最新版。
 
 > 桌面端未做代码签名，首次运行可能提示「未知发布者」，点「更多信息 → 仍要运行」即可。
 > 安卓端为自有密钥签名（非 Google Play 分发），安装时若提示「未知来源」，需在系统设置里
@@ -91,6 +93,11 @@ okey-dokey/
 | 卡片不显示 Usage | 手机上信息密度有限，优先留必需项 |
 | 无「按使用次数排序」 | Usage 不可见后再按它排序，用户看不到依据 |
 | 提示条贴左右边距居中 | 桌面端的 `translateX(-50%)` 居中在窄屏会把提示推出屏幕 |
+| 「关于」不显示 Electron / 程序位置 | 安卓端没有 Electron，这些字段恒为空或写成孤立字样 |
+| 「关于」不显示便携版与桌面快捷方式 | 安卓没有这两个概念 |
+| 「关于」不显示 Ctrl 快捷键 | 手机没有物理键盘 |
+| 「关于」数据目录显示为「应用私有目录」 | `file:///data/user/0/...` 对用户无意义且会换行 |
+| 「安全」不显示密钥/库文件路径与「打开文件夹」 | 移动端路径不可读，且该按钮在安卓上无效 |
 
 > 卡片主按钮保留 **测试 / 显示 / 复制 / ⋯**：前三个是最高频动作，
 > 编辑、收藏、删除收进 ⋯ 菜单（也顺带降低了误触删除的概率）。
@@ -106,6 +113,10 @@ okey-dokey/
 > 点击 Reveal / Copy 是**立即**返回的：这两处不会等待「使用次数」落盘
 > （落盘含一次 scrypt 派生，手机上会明显卡顿）。计数改为合并写盘，
 > 并在导出前与切后台时补写，不会丢。
+
+设置里的四页（外观 / 安全 / 数据 / 关于）与桌面端一致，但**移除了桌面端专属的字段与按钮**
+（Electron 版本、程序位置、便携版说明、桌面快捷方式、Ctrl 快捷键、裸路径），
+避免手机上出现看不懂或点了没用的内容。
 
 在手机上迁移数据的入口是 **设置 → 数据**：
 - **导出加密备份**：生成 `.okeyvault` 文件并弹出系统分享面板，可直接发到微信 / 邮件 / 网盘 / 蓝牙。
@@ -141,7 +152,7 @@ CLI 是纯 Node 脚本、零依赖，所以**即使不装 Electron 也能用**�
 | 版本 | 生成命令 | 产物 | 启动耗时 | 适用场景 |
 | --- | --- | --- | --- | --- |
 | **目录版** | `npm run dist` | `release/win-unpacked/` | ~0.35 s | 免安装，整个文件夹拷走即用，可放 U 盘 |
-| **安装版** | `npm run dist:installer` | `release/Okey-Dokey-Setup-1.0.0.exe` | ~0.35 s | 装进系统，带开始菜单与桌面快捷方式 |
+| **安装版** | `npm run dist:installer` | `release/Okey-Dokey-Setup-<版本>.exe` | ~0.35 s | 装进系统，带开始菜单与桌面快捷方式 |
 
 > 目录版请**整个文件夹一起移动**，只拷 `Okey Dokey.exe` 无法运行（缺运行时与 `resources/`）。
 
@@ -168,7 +179,7 @@ CLI 是纯 Node 脚本、零依赖，所以**即使不装 Electron 也能用**�
 | 需求 | 实现 |
 | --- | --- |
 | 加密保存密钥 | AES-256-GCM 整库加密；密钥由 scrypt 从本机设备密钥派生；明文不落盘 |
-| 服务商筛选 | 内置 24 家服务商，下拉框 + 侧栏筛选，附条数统计 |
+| 服务商筛选 | 内置 22 家服务商（另含「自建/其他」），下拉框 + 侧栏筛选，附条数统计 |
 | Key 备注 | 多行备注 + 标签 + Base URL + 常用模型，备注可被搜索 |
 | 简约风前端 | 单栏卡片、克制留白与圆角 |
 | 自定义配色主题 | 6 套预设（含 2 套暗色）+ 主色/辅助色/背景/卡片/文字/圆角独立调节 |
@@ -351,7 +362,7 @@ npm run check                                  # 语法检查
 npm run test:cli
 node scripts/connectivity-test.mjs             # 连通测试功能（67 项）
 npx electron scripts/connectivity-ui-check.js  # 真实 Electron 里验证按钮与交互
-npm run test:smoke                             # 端到端界面测试（18 项）
+npm run test:smoke                             # 端到端界面测试
 npm run test:startup                           # 启动耗时基准
 npm run test:doubleclick                       # 目录版真实启动方式验证
 npm run shots                                  # 重新生成界面截图
@@ -369,9 +380,13 @@ cd android && gradlew.bat assembleRelease      # 构建签名 APK
 cd mobile
 node scripts/cross-compat-test.mjs             # 两端加密格式互通（31 项）
 node scripts/e2e-migration-test.mjs            # 端到端迁移链路（24 项）
-node scripts/layout-test.mjs                   # 移动端布局断言（35 项）
+node scripts/layout-test.mjs                   # 移动端布局断言（39 项）
 node scripts/render-test.mjs                   # 移动端渲染实测（12 项）
 node scripts/touch-perf-test.mjs               # 触摸路径耗时（9 项）
+
+# 移动端专用回归（需 Electron 环境）
+npx electron mobile/scripts/narrow-layout-test.cjs   # 窄屏布局：不换行/不溢出（22 项）
+npx electron mobile/scripts/mobile-about-test.cjs    # 设置页无桌面端残留内容（22 项）
 ```
 
 ## 已知限制
@@ -380,12 +395,10 @@ node scripts/touch-perf-test.mjs               # 触摸路径耗时（9 项）
 - **构建需磁盘空间**：每次打包会在 `release/` 写出约 460 MB 解包目录，空间不足会报 `ENOSPC`。
 - **未做代码签名**：安装版首次运行可能触发 Windows SmartScreen「未知发布者」提示。
 - **Windows 优先**：桌面端配置仅提供 Windows 目标；macOS/Linux 目标未验证。
-- **安卓端未做真机回归**：加密格式与数据格式已用自动化测试证明与桌面端互通
-  （见 `cross-compat-test.mjs`、`e2e-migration-test.mjs`），但界面在真机上的表现
-  （不同厂商 ROM 的 WebView、软键盘、深色模式）尚未逐机型验证。
+- **安卓端界面未经真机逐机型验证**：加密与数据格式已用自动化测试证明互通
+  （见 `cross-compat-test.mjs`、`e2e-migration-test.mjs`），窄屏布局与设置页也有断言覆盖；
+  但不同厂商 ROM 的 WebView 渲染、软键盘、字体与深色模式仍需实机确认。
 - **迁移动辄需要口令**：这是安全设计而非缺陷；但确实意味着忘了口令就无法恢复。
-- **移动端界面未经真机逐机型验证**：布局与行为有自动化断言覆盖（见上节测试），
-  但不同厂商 ROM 的 WebView 渲染、字体与深色模式表现需实机确认。
 - **剪贴板 30 秒自动清空在切后台时可能不执行**：WebView 会冻结定时器。真正可靠需要原生
   `ClipboardManager` 的 `onPrimaryClipChanged` 监听；本项目刻意保持最小权限面，故如实记录。
 - **连通测试会消耗极少量额度**：每次约 1 个 token；未填「常用模型」时退化为只调「列模型」接口，不消耗生成额度。

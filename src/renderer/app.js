@@ -774,11 +774,13 @@ function openSettings(tab = 'appearance') {
         <div class="sub">${esc(window.t('localKeyDesc'))}</div>
         <div class="warn"><span>⚠</span><span>${esc(window.t('localKeyWarn'))}</span></div>
         <div style="margin-top:12px">
+          ${IS_MOBILE ? '' : `
           <div class="kv"><span class="k">${esc(window.t('keyFile'))}</span><span class="v"><code class="path">${esc(state.status.keyPath)}</code></span></div>
-          <div class="kv"><span class="k">${esc(window.t('vaultFile'))}</span><span class="v"><code class="path">${esc(state.status.vaultPath)}</code></span></div>
+          <div class="kv"><span class="k">${esc(window.t('vaultFile'))}</span><span class="v"><code class="path">${esc(state.status.vaultPath)}</code></span></div>`}
           <div class="kv"><span class="k">${esc(window.t('storageNote'))}</span><span class="v">AES-256-GCM · scrypt(N=16384)</span></div>
+          ${IS_MOBILE ? `<div class="kv"><span class="k">${esc(window.t('dataDir'))}</span><span class="v">${esc(window.t('androidDataHint'))}</span></div>` : ''}
         </div>
-        <button class="btn sm" id="s-open" style="margin-top:10px">${esc(window.t('openDir'))}</button>
+        ${IS_MOBILE ? '' : `<button class="btn sm" id="s-open" style="margin-top:10px">${esc(window.t('openDir'))}</button>`}
       </div>`;
   }
 
@@ -806,18 +808,50 @@ function openSettings(tab = 'appearance') {
   }
 
   function tabAbout() {
+    // 移动端与桌面端展示的内容不同：
+    //   - 移动端没有 Electron，版本号后缀写了会留下孤立的 "Electron" 字样
+    //   - 没有「可执行文件」「便携版」「桌面快捷方式」「Ctrl 快捷键」这些概念
+    //   - 数据目录是 file:// URI，对用户无意义且很长
+    // 所以移动端只留版本、数据位置（简化）与语言。
+    const runtime = state.info.electron ? ` · Electron ${esc(state.info.electron)}` : '';
+    const platformLabel = IS_MOBILE ? window.t('androidApp') : window.t('desktopApp');
+
+    const desktopExtras = IS_MOBILE ? '' : `
+        <div class="kv"><span class="k">${esc(window.t('exePath'))}</span><span class="v"><code class="path">${esc(state.info.exePath || '—')}</code></span></div>`;
+
+    const portableBlock = (!IS_MOBILE && state.info.packaged)
+      ? `<div class="sub" style="margin-top:16px">${esc(window.t('portableHint'))}</div>
+          <button class="btn sm" id="a-shortcut">${esc(window.t('shortcut'))}</button>`
+      : '';
+
+    const shortcutHint = IS_MOBILE ? '' :
+      `<div class="hint" style="margin-top:12px">${esc(window.t('toggleHelp'))}</div>`;
+
     return `
       <div class="section">
         <h4>${esc(window.t('about'))}</h4>
-        <div class="kv"><span class="k">${esc(window.t('version'))}</span><span class="v">${esc(state.info.version)} · Electron ${esc(state.info.electron)}</span></div>
-        <div class="kv"><span class="k">${esc(window.t('exePath'))}</span><span class="v"><code class="path">${esc(state.info.exePath || '—')}</code></span></div>
-        <div class="kv"><span class="k">${esc(window.t('dataDir'))}</span><span class="v"><code class="path">${esc(state.info.dataDir)}</code></span></div>
+        <div class="kv"><span class="k">${esc(window.t('version'))}</span><span class="v">${esc(state.info.version)}${runtime}</span></div>
+        <div class="kv"><span class="k">${esc(window.t('platform'))}</span><span class="v">${esc(platformLabel)}</span></div>${desktopExtras}
+        <div class="kv"><span class="k">${esc(window.t('dataDir'))}</span><span class="v"><code class="path">${esc(friendlyDataDir(state.info.dataDir))}</code></span></div>
         <div class="kv"><span class="k">${esc(window.t('language'))}</span><span class="v">${esc(state.lang === 'en' ? 'English' : '简体中文')}</span></div>
         <button class="btn sm" id="a-lang" style="margin-top:8px">${esc(window.t('language'))}</button>
-        ${state.info.packaged ? `<div class="sub" style="margin-top:16px">${esc(window.t('portableHint'))}</div>
-          <button class="btn sm" id="a-shortcut">${esc(window.t('shortcut'))}</button>` : ''}
-        <div class="hint" style="margin-top:12px">${esc(window.t('toggleHelp'))}</div>
+        ${portableBlock}
+        ${shortcutHint}
       </div>`;
+  }
+
+  /**
+   * 把数据位置显示成用户能看懂的形式。
+   *
+   * 桌面端是普通路径，原样显示。
+   * 移动端拿到的是 file:///data/user/0/<pkg>/files/okey-dokey 这类 URI，
+   * 对用户没有意义、还会换行，所以换成一句说明。
+   */
+  function friendlyDataDir(dir) {
+    const d = String(dir || '');
+    if (!IS_MOBILE) return d || '—';
+    // 移动端统一给出可理解的描述，不再暴露 URI
+    return window.t('androidDataHint');
   }
 
   /* ---- 交互绑定 ---- */
@@ -915,7 +949,7 @@ function openSettings(tab = 'appearance') {
         renderTab('security');
       };
       const open = overlay.querySelector('#s-open');
-      if (open) open.onclick = () => api.revealExternal(state.info.dataDir);
+      if (open) open.onclick = () => api.revealExternal(state.info.dataDir);   // 移动端该按钮不存在，已由 IS_MOBILE 隐藏
     }
 
     if (t === 'data') {
