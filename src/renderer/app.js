@@ -7,6 +7,11 @@
 const api = window.vault;
 const $ = (sel) => document.querySelector(sel);
 
+// 是否运行在移动端（由 boot.js 打上的 is-mobile 类判定）。
+// 用于做「只改移动端、不动桌面端」的增量调整——这份界面代码两端共用，
+// 所以分流要写在运行时，而不是复制成两份。
+const IS_MOBILE = !!document.documentElement.classList.contains('is-mobile');
+
 const state = {
   records: [],
   settings: null,
@@ -139,7 +144,9 @@ function buildStaticUI() {
 
   // 排序下拉
   const sortSel = $('#sortSelect');
-  sortSel.innerHTML = ['updated', 'created', 'label', 'provider', 'usage']
+  // 移动端不显示 Usage，也就不能让用户按它排序（见 IS_MOBILE 注释）
+  const sortKeys = IS_MOBILE ? ['updated', 'created', 'label', 'provider'] : ['updated', 'created', 'label', 'provider', 'usage'];
+  sortSel.innerHTML = sortKeys
     .map((k) => `<option value="${k}">${esc(window.t('sort' + k[0].toUpperCase() + k.slice(1)))}</option>`).join('');
   sortSel.value = state.sort;
 
@@ -310,7 +317,7 @@ function card(rec) {
     <div class="note-box" data-act="note" style="cursor:text" title="${esc(window.t('edit'))}">${rec.note ? esc(rec.note) : `<span class="empty-note">${esc(window.t('noNote'))}</span>`}</div>
     <div class="meta">
       <span>${esc(window.t('updated'))}: ${esc(fmtDate(rec.updatedAt))}</span>
-      <span>${esc(window.t('usage'))}: ${rec.usageCount ? rec.usageCount + ' ' + window.t('times') : esc(window.t('neverUsed'))}</span>
+${IS_MOBILE ? '' : `      <span>${esc(window.t('usage'))}: ${rec.usageCount ? rec.usageCount + ' ' + window.t('times') : esc(window.t('neverUsed'))}</span>`}
       ${rec.baseUrl ? `<span>${esc(rec.baseUrl)}</span>` : ''}
       ${rec.models ? `<span>${esc(rec.models)}</span>` : ''}
     </div>`;
