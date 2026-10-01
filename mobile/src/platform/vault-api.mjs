@@ -13,7 +13,7 @@ import { App } from '@capacitor/app';
 import { Store } from './store.mjs';
 import { encryptWithPassphrase, decryptWithPassphrase, isExportPackage, b64decode, b64encode } from './crypto.mjs';
 
-const APP_VERSION = '1.2.1';
+const APP_VERSION = '1.2.2';
 const BG_DIR = 'background';
 
 let store = null;

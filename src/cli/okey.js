@@ -27,7 +27,7 @@ const {
 } = require('./resolve');
 const { aliasesPath, saveAliases } = require('./aliases');
 
-const VERSION = '1.2.1';
+const VERSION = '1.2.2';
 const PROG = 'okey';
 
 /* ------------------------------ 输出工具 ------------------------------ */

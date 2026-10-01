@@ -134,6 +134,18 @@ CLI 是纯 Node 脚本、零依赖，所以**即使不装 Electron 也能用**�
 
 两个版本的实机启动截图：[目录版](docs/images/ui-directory-build.png) · [安装版](docs/images/ui-installed.png)
 
+### 关于体积
+
+安装包约 **98 MB**。听起来大，但**其中应用自身的代码只有 0.14 MB**——其余全是 Electron
+（Chromium + Node）运行时。
+
+已经做的优化：裁掉 Electron 默认捆绑的 55 个语言包中不用的 52 个（只留 `en-US` /
+`zh-CN` / `zh-TW`），解包体积 367 MB → 321 MB，安装包 106 MB → 98 MB。
+
+实测确认**再压缩的空间已经很小**：把解包内容整体用 zlib-9 压一遍是 150 MB，而当前安装包
+只有 98 MB，说明 NSIS 用的 LZMA 已经比 zlib 更强。想显著变小只能换掉 Electron
+（如 Tauri），那等于重写整个项目。
+
 ### 关于便携版（单文件 exe）
 
 本项目**不提供**单文件便携版：它每次启动都要把 Electron 运行时（约 460 MB）解压到临时目录，实测启动需 **6.2 秒**，是目录版的 19 倍。实测数据见 [docs/startup-performance.md](docs/startup-performance.md)。
