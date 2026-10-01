@@ -43,6 +43,37 @@ function providerName(id) {
   const p = provider(id);
   return state.lang === 'en' ? p.en : p.zh;
 }
+
+/**
+ * 筛选条里使用的短名。
+ *
+ * 为什么单独做一份：侧栏筛选条在窄屏是横向滑动的，过长的名字会把
+ * 整条挤到需要滑动很久（实测 'Self-hosted / Other' 一项就占 188px）。
+ * 短名只用于筛选条，不动 providers 表本身 —— 编辑器里的下拉框仍用全名，
+ * 那里空间充足且需要准确表述。
+ */
+const PROVIDER_SHORT = {
+  custom: { zh: '自建', en: 'Other' },
+  anthropic: { zh: 'Claude', en: 'Claude' },
+  google: { zh: 'Gemini', en: 'Gemini' },
+  deepseek: { zh: 'DeepSeek', en: 'DeepSeek' },
+  qwen: { zh: '千问', en: 'Qwen' },
+  moonshot: { zh: 'Kimi', en: 'Kimi' },
+  hunyuan: { zh: '混元', en: 'Hunyuan' },
+  doubao: { zh: '豆包', en: 'Doubao' },
+  spark: { zh: '星火', en: 'Spark' },
+  zhipu: { zh: '智谱', en: 'Zhipu' },
+  baichuan: { zh: '百川', en: 'Baichuan' },
+  stepfun: { zh: '阶跃', en: 'StepFun' },
+  siliconflow: { zh: '硅基流动', en: 'SiliconFlow' },
+  azure: { zh: 'Azure', en: 'Azure' }
+};
+
+function providerShortName(id) {
+  const s = PROVIDER_SHORT[id];
+  if (s) return state.lang === 'en' ? s.en : s.zh;
+  return providerName(id);
+}
 function providerHue(id) {
   let h = 0;
   for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) % 360;
@@ -200,7 +231,7 @@ function renderSidebar() {
       const on = !state.filter.favorites && state.filter.provider === p.id;
       return `<button class="side-item ${on ? 'on' : ''}" data-nav="p:${esc(p.id)}">
         <span class="dot" style="--dot:hsl(${providerHue(p.id)} 62% 58%)"></span>
-        <span class="nm">${esc(state.lang === 'en' ? p.en : p.zh)}</span><span class="ct">${counts[p.id]}</span></button>`;
+        <span class="nm">${esc(providerShortName(p.id))}</span><span class="ct">${counts[p.id]}</span></button>`;
     }).join('');
   }
 
@@ -315,9 +346,14 @@ function card(rec) {
                 ${tst && tst.running ? 'disabled' : ''}>${esc(tst && tst.running ? window.t('testing') : window.t('test'))}</button>
         <button class="btn sm" data-act="reveal">${esc(rev ? window.t('hide') : window.t('reveal'))}</button>
         <button class="btn sm" data-act="copy">${esc(window.t('copy'))}</button>
-        <button class="btn sm" data-act="edit">${esc(window.t('edit'))}</button>
-        <button class="btn sm" data-act="fav" title="favorite">${rec.favorite ? '★' : '☆'}</button>
-        <button class="btn sm danger" data-act="del">${esc(window.t('delete'))}</button>
+        <button class="btn sm more-btn" data-act="more" title="${esc(window.t('more'))}"
+                aria-haspopup="menu" aria-expanded="false">⋯</button>
+        <!-- 次要操作：移动端由 CSS 收进「⋯」菜单，桌面端保持平铺 -->
+        <div class="more-menu" data-menu hidden role="menu">
+          <button class="btn sm" data-act="edit" role="menuitem">${esc(window.t('edit'))}</button>
+          <button class="btn sm" data-act="fav" role="menuitem">${rec.favorite ? '★ ' + esc(window.t('removeFav')) : '☆ ' + esc(window.t('addFav'))}</button>
+          <button class="btn sm danger" data-act="del" role="menuitem">${esc(window.t('delete'))}</button>
+        </div>
       </div>
     </div>
     <div class="note-box" data-act="note" style="cursor:text" title="${esc(window.t('edit'))}">${rec.note ? esc(rec.note) : `<span class="empty-note">${esc(window.t('noNote'))}</span>`}</div>
@@ -337,11 +373,39 @@ ${IS_MOBILE ? '' : `      <span>${esc(window.t('usage'))}: ${rec.usageCount ? re
     await call(api.update, rec.id, { favorite: !rec.favorite });
     await refresh(); render();
   };
-  el.querySelector('[data-act="del"]').onclick = () => confirmDelete(rec);
+  el.querySelector('[data-act="del"]').onclick = () => { closeMore(el); confirmDelete(rec); };
   el.querySelector('[data-act="test"]').onclick = () => runTest(rec);
+
+  // 「⋯」菜单：点开/收起，点外部或按 Esc 关闭。
+  // 收折只在移动端发生（CSS 控制），桌面端菜单按钮本身也隐藏。
+  const moreBtn = el.querySelector('[data-act="more"]');
+  const menu = el.querySelector('[data-menu]');
+  moreBtn.onclick = (e) => {
+    e.stopPropagation();
+    const willOpen = menu.hidden;
+    menu.hidden = !willOpen;
+    moreBtn.setAttribute('aria-expanded', String(willOpen));
+    if (willOpen) {
+      const off = (ev) => {
+        if (!el.contains(ev.target)) { closeMore(el); document.removeEventListener('click', off); }
+      };
+      setTimeout(() => document.addEventListener('click', off), 0);
+    }
+  };
+  menu.addEventListener('click', (e) => e.stopPropagation());
 
   if (rev) startTimer(rec.id, el.querySelector(`[data-timer="${rec.id}"]`));
   return el;
+}
+
+/* ------------------------------ 卡片操作 ------------------------------ */
+
+/** 收起某张卡片的「⋯」菜单 */
+function closeMore(cardEl) {
+  const menu = cardEl.querySelector('[data-menu]');
+  const btn = cardEl.querySelector('[data-act="more"]');
+  if (menu) menu.hidden = true;
+  if (btn) btn.setAttribute('aria-expanded', 'false');
 }
 
 /* ------------------------------ 连通性测试 ------------------------------ */

@@ -148,14 +148,61 @@ body {
 
 /* 卡片操作按钮：高度到位，换行不溢出 */
 .is-mobile .actions {
-  flex-wrap: wrap;
+  /* 移动端：主按钮（测试/显示/复制/⋯）不换行；
+     次要操作已在 ⋯ 菜单里，不参与这一行的排版。 */
+  flex-wrap: nowrap;
   gap: 6px;
+  position: relative;
+  align-items: center;
 }
 
 .is-mobile .actions .btn.sm {
   min-height: 36px;
-  padding: 6px 12px;
+  padding: 6px 10px;
+  /* 允许按钮在极窄屏下等比收缩，而不是把 ⋯ 挤到下一行 */
+  flex: 0 1 auto;
+  min-width: 0;
 }
+
+/* 移动端显示「⋯」入口（基础隐藏规则在 styles.css，因为桌面端不加载本文件） */
+.is-mobile .more-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  font-size: 15px;
+  line-height: 1;
+  letter-spacing: 1px;
+}
+
+/* 「⋯」菜单：移动端由它承载次要操作 */
+.is-mobile .more-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 132px;
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  box-shadow: 0 10px 28px rgba(10, 15, 30, .18);
+}
+
+.is-mobile .more-menu[hidden] {
+  display: none;
+}
+
+.is-mobile .more-menu .btn.sm {
+  justify-content: flex-start;
+  text-align: left;
+  min-height: 36px;
+  width: 100%;
+}
+
 
 /* 卡片内边距略收，窄屏信息密度更合适 */
 .is-mobile .card {
@@ -296,13 +343,16 @@ body {
 
 .is-mobile #sideNav {
   display: flex;
-  /* 换行展示全部，而不是横向滚动——
-     滚动会让最后一项被截在边缘（上报截图里的现象），
-     而删去搜索框与工具栏后已经有了足够的纵向空间。 */
-  flex-wrap: wrap;
+  /* 横向滑动，不换行。
+     实测：3 项换行后第二行只剩 1 项，视觉重心明显偏左（用户上报的问题）；
+     滑动配合右侧渐隐，既保持单行对齐，又暗示还有更多项可看。 */
+  flex-wrap: nowrap;
   gap: 8px;
-  overflow: visible;
-  padding: 4px 0 8px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  padding: 4px 2px 8px;
 }
 
 .is-mobile #sideNav::-webkit-scrollbar {
@@ -317,6 +367,16 @@ body {
   border-radius: 999px;
   /* 横向条里只让正文显示，不要侧栏的整行宽度 */
   white-space: nowrap;
+}
+
+/* 筛选条容器：用 mask 做两端渐隐，暗示可横向滑动。
+   这比换行更省纵向空间，也不会出现「第二行只有一项」的失衡。 */
+.is-mobile aside {
+  --fade: 24px;
+  -webkit-mask-image: linear-gradient(to right, transparent 0, #000 var(--fade),
+                      #000 calc(100% - var(--fade)), transparent 100%);
+  mask-image: linear-gradient(to right, transparent 0, #000 var(--fade),
+              #000 calc(100% - var(--fade)), transparent 100%);
 }
 
 .is-mobile #sideNav .side-title {

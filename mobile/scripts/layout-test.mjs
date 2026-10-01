@@ -70,8 +70,7 @@ section('1. bug 2：提示条不再超出屏幕边界');
   check('桌面端仍保持 translateX(-50%) 居中', !!deskToasts && /translateX\(-50%\)/.test(deskToasts));
 }
 
-section('2. bug 1：reveal / copy 不等落盘');
-{
+section('2. bug 1：reveal / copy 不等落盘');{
   const storeSrc = fs.readFileSync(path.join(MOBILE, 'src', 'platform', 'store.mjs'), 'utf8');
   const apiSrc = fs.readFileSync(path.join(MOBILE, 'src', 'platform', 'vault-api.mjs'), 'utf8');
 
@@ -105,19 +104,31 @@ section('3. 界面精简：搜索框与冗余工具栏');
     /\.is-mobile #sortSelect/.test(mobileCss) && !/\.is-mobile #sortSelect\s*\{[^}]*display:\s*none/.test(mobileCss));
 }
 
-section('4. 筛选条：整行放下、不再被截断');
+section('4. 筛选条：单行横向滑动（v1.2.4 起）');
 {
   const sideNav = cssBlock(mobileCss, '.is-mobile #sideNav');
   check('存在筛选条规则', !!sideNav);
-  check('改为换行展示全部（flex-wrap: wrap）',
-    !!sideNav && /flex-wrap:\s*wrap/.test(sideNav),
-    sideNav ? sideNav.replace(/\s+/g, ' ') : '');
-  check('不再横向滚动截断（无 overflow-x: auto）',
-    !!sideNav && !/overflow-x:\s*auto/.test(sideNav));
+  // 设计变更：原先用换行展示全部，但实测 3 项换行后第二行只剩 1 项，
+  // 视觉重心明显偏左（用户上报）。现改为横向滑动 + 两端渐隐。
+  check('单行不换行（flex-wrap: nowrap）',
+    !!sideNav && /flex-wrap:\s*nowrap/.test(sideNav),
+    sideNav ? sideNav.replace(/\s+/g, ' ').slice(0, 120) : '');
+  check('启用了横向滑动',
+    !!sideNav && /overflow-x:\s*auto/.test(sideNav));
+  check('滑动区域可触摸滚动',
+    !!sideNav && /-webkit-overflow-scrolling:\s*touch/.test(sideNav));
+  // 实质检查：滑块不能把内容裁掉（overflow hidden 会让内容不可达）
+  check('内容未被裁掉（不是 overflow: hidden）',
+    !!sideNav && !/overflow(-x)?:\s*hidden/.test(sideNav));
   check('aside 在移动端可见（未被窄屏断点隐藏）',
     /\.is-mobile aside\s*\{[^}]*display:\s*block/.test(mobileCss));
   check('筛选条避开左右安全区',
     /\.is-mobile aside\s*\{[^}]*safe-left/.test(mobileCss) && /\.is-mobile aside\s*\{[^}]*safe-right/.test(mobileCss));
+  // 两端渐隐：提示可滑动，否则用户不知道右边还有项
+  check('有渐隐提示（mask-image）',
+    /\.is-mobile aside\s*\{[^}]*mask-image/.test(mobileCss));
+  // 长名已改用短名
+  check('长服务商名使用短名', /providerShortName/.test(appSrc) && /PROVIDER_SHORT/.test(appSrc));
 }
 
 section('5. 删去 Usage（仅移动端）');

@@ -92,6 +92,18 @@ html = html.replace(
   '<link rel="stylesheet" href="styles.css" />\n  <link rel="stylesheet" href="mobile.css" />'
 );
 
+// 给所有本地静态资源加版本参数，防止 WebView 缓存旧版样式/脚本。
+//
+// 为什么必须做：Capacitor 用 https://localhost 加载本地资源，会走 HTTP 缓存。
+// 之前出现过「装了新版 APK 却仍看到旧界面」的困惑（用户报的搜索框/密度切换
+// 实际已被隐藏，但缓存里的旧 CSS 仍生效）。加版本号后，每次发版必定重新拉取。
+//
+// 注意：这段必须在所有「路径替换」之后执行 —— 否则 providers.js 那时
+// 还是 '../shared/providers.js' 形式，正则匹配不到，它就不会带版本号。
+const V = encodeURIComponent(
+  JSON.parse(fs.readFileSync(path.join(MOBILE, 'package.json'), 'utf8')).version
+);
+
 // 启动脚本必须早于 app.js：app.js 在文件末尾立即调用 init()
 html = html.replace(
   '<script src="../shared/providers.js"></script>',
@@ -100,6 +112,16 @@ html = html.replace(
 html = html.replace(
   '<script src="i18n.js"></script>',
   '<script src="platform.js"></script>\n  <script src="i18n.js"></script>'
+);
+
+// 现在所有资源路径都已就位，统一加版本参数
+html = html.replace(
+  /(<link[^>]+href=")([\w.-]+\.css)(")/g,
+  (m, a, f, b) => `${a}${f}?v=${V}${b}`
+);
+html = html.replace(
+  /(<script[^>]+src=")([\w.-]+\.js)(")/g,
+  (m, a, f, b) => `${a}${f}?v=${V}${b}`
 );
 
 // CSP：允许 Capacitor 的 https 本地源与 data 图

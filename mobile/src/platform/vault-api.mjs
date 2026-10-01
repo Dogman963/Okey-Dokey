@@ -15,7 +15,7 @@ import { Store } from './store.mjs';
 import { encryptWithPassphrase, decryptWithPassphrase, isExportPackage, b64decode, b64encode } from './crypto.mjs';
 import { buildProbe, interpret, DEFAULT_TIMEOUT_MS } from '../../../src/shared/connectivity.js';
 
-const APP_VERSION = '1.2.3';
+const APP_VERSION = '1.2.4';
 const BG_DIR = 'background';
 
 let store = null;
