@@ -1,6 +1,6 @@
 {
   "name": "okey-dokey",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "大模型 API 密钥保险库 / LLM API key vault — 本机加密存储、服务商筛选、备注、主题自定义、中英双语",
   "main": "src/main/index.js",
   "type": "commonjs",
@@ -8,14 +8,15 @@
   "license": "MIT",
   "scripts": {
     "start": "electron .",
-    "check": "node --check src/main/index.js && node --check src/main/store.js && node --check src/main/crypto.js && node --check src/preload/index.js && node --check src/renderer/app.js && node --check src/renderer/i18n.js && node --check src/shared/providers.js",
+    "check": "node --check src/main/index.js && node --check src/main/store.js && node --check src/main/crypto.js && node --check src/preload/index.js && node --check src/renderer/app.js && node --check src/renderer/i18n.js && node --check src/shared/providers.js && node --check src/cli/okey.js && node --check src/cli/resolve.js && node --check src/cli/aliases.js && node --check scripts/vault-tool.js && node --check scripts/cli-test.js",
     "icon": "python scripts/make_icon.py",
     "dist": "electron-builder --win nsis --dir",
     "dist:installer": "electron-builder --win nsis",
     "test:smoke": "electron scripts/smoke.js",
     "test:startup": "powershell -ExecutionPolicy Bypass -File scripts/bench-startup.ps1",
     "test:doubleclick": "powershell -ExecutionPolicy Bypass -File scripts/test-doubleclick.ps1",
-    "shots": "electron scripts/screenshot.js"
+    "shots": "electron scripts/screenshot.js",
+    "test:cli": "node scripts/cli-test.js"
   },
   "keywords": [
     "api-key",
@@ -39,6 +40,7 @@
     },
     "files": [
       "src/**/*",
+      "bin/**/*",
       "package.json"
     ],
     "win": {
@@ -61,6 +63,27 @@
       "shortcutName": "Okey Dokey",
       "artifactName": "Okey-Dokey-Setup-${version}.${ext}",
       "uninstallDisplayName": "Okey Dokey (大模型 API 密钥保险库)"
-    }
+    },
+    "extraResources": [
+      {
+        "from": "src/cli",
+        "to": "cli/src/cli"
+      },
+      {
+        "from": "src/main/crypto.js",
+        "to": "cli/src/main/crypto.js"
+      },
+      {
+        "from": "src/main/store.js",
+        "to": "cli/src/main/store.js"
+      },
+      {
+        "from": "bin",
+        "to": "cli/bin"
+      }
+    ]
+  },
+  "bin": {
+    "okey": "src/cli/okey.js"
   }
 }

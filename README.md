@@ -90,6 +90,21 @@ npm install     # 首次运行，安装 Electron（约 1 分钟）
 npm start       # 启动应用
 ```
 
+### 安装命令行工具 okey
+
+```powershell
+npm link                       # 把 okey 链接到全局，之后任意目录可用
+okey doctor                    # 自检
+```
+
+也可以直接用仓库内的包装器，无需 link：
+
+```powershell
+.\bin\okey.cmd doctor
+```
+
+CLI 是纯 Node 脚本、零依赖，所以**即使不装 Electron 也能用**——换台机器只拷仓库再装 Node 即可。
+
 ## 两个发布版本
 
 打包产物都输出到 `release/`（已加入 `.gitignore`，不入库）。
@@ -120,6 +135,81 @@ npm start       # 启动应用
 | 中英双语 | 一键切换，语言与主题持久化 |
 
 其他：搜索覆盖名称/备注/标签/服务商/模型/密钥尾号；5 种排序与列表密度；收藏夹；显示密钥倒计时自动隐藏；复制后 30 秒清空剪贴板；掩码样式三选一；加密备份导出与导入。
+
+## 命令行取用（okey CLI）
+
+密钥存下来只是第一步，**能取出来用**才算有价值。`okey` 把「打开界面 → 显示 → 复制 → 切窗口 → 粘贴」变成一行命令。
+
+```powershell
+# 让代码直接读到 key —— 不需要改一行业务代码，也不需要 .env 文件
+okey run -- python train.py
+
+# 只注入某几个服务商
+okey run openai deepseek -- npm test
+
+# 生产/测试变量名分开，避免混用
+okey run --tag 生产 --prefix PROD_ -- ./deploy.sh
+
+# 在当前 shell 会话里设置（PowerShell）
+okey env openai | Invoke-Expression
+
+# 取出单个 key 交给别的工具
+okey get openai:生产 | some-other-tool --stdin
+```
+
+| 命令 | 作用 |
+| --- | --- |
+| `okey run [选择器] -- <命令>` | 注入环境变量后运行命令（**推荐**） |
+| `okey get <选择器>` | 输出密钥明文；`--copy` 复制到剪贴板 |
+| `okey env [选择器]` | 输出环境变量赋值语句；`--json` / `--shell cmd` |
+| `okey list [选择器]` | 列出记录（密钥恒为掩码） |
+| `okey which <选择器>` | 查看某条记录详情与将派生的变量名 |
+| `okey alias [选择器] [变量名]` | 查看/指定记录的变量名（自建端点必需） |
+| `okey doctor` | 自检：数据目录、能否解密、变量名可派生性、冲突 |
+
+### 选择器
+
+```
+openai              服务商 id
+openai:生产          服务商 + 标签（最精确，推荐）
+@3f2a               记录 id 前缀
+"生产环境"           标题精确匹配
+生产                 标题或标签的子串匹配（要求唯一）
+```
+
+**同一服务商有多条记录时，`okey` 会报错而不是随便挑一条**——选错密钥去跑生产任务，
+比报错严重得多。用 `<服务商>:<标签>` 或 `--tag` 指明即可。
+
+### 变量名怎么来的
+
+内置表覆盖 22 家服务商，用的是**各 SDK 实际读取的名字**（OpenAI → `OPENAI_API_KEY`、
+阿里百炼 → `DASHSCOPE_API_KEY`、火山方舟 → `ARK_API_KEY`），所以现有代码无需改动就能生效。
+记录里填了 `baseUrl` 时还会额外注入 `*_BASE_URL`。
+
+**自建/中转端点（provider = custom）不会被自动猜测。** 因为标题写「Claude」并不等于应该注入
+`ANTHROPIC_API_KEY`——猜错不会报错，只会让 SDK 静默读不到 key，这是最难排查的一类故障。
+指定一次即可长期生效：
+
+```powershell
+okey alias "Gpt"    OPENAI_API_KEY
+okey alias "Claude" ANTHROPIC_API_KEY
+```
+
+映射写在数据目录的 `aliases.json`，**只含变量名、不含密钥**，可以安全备份或纳入版本控制。
+
+### 退出码
+
+脚本里可据此区分失败原因：`0` 成功 · `1` 一般错误 · `2` 未找到 · `3` 选择器有歧义 ·
+`4` 密钥库问题 · `5` 用法错误。
+
+### 安全边界（请务必读）
+
+- `okey` 是**只读**的：它不修改密钥库，写入仍由桌面端/安卓端负责，避免多进程互相覆盖。
+- `get` / `env` 会把密钥明文写到 stdout——**不要把输出重定向到会被提交或同步的文件**。
+- 日常优先用 `run`：密钥只进入子进程环境，不落盘、不进 shell 历史。
+- 一旦用了 CLI，**任何能在本机执行命令的进程都能拿到你的密钥**。这是环境变量方案的固有性质，
+  它把安全性从「手动复制」降到「进程信任」。不要把这套用在不可信的共享机器上。
+- CLI 本身不联网、无遥测。
 
 ## 跨设备迁移数据
 
@@ -170,6 +260,7 @@ node scripts/vault-tool.js plaintext-check some-file
 
 ```powershell
 npm run check                                  # 语法检查
+npm run test:cli
 npm run test:smoke                             # 端到端界面测试（18 项）
 npm run test:startup                           # 启动耗时基准
 npm run test:doubleclick                       # 目录版真实启动方式验证
@@ -200,6 +291,8 @@ node scripts/e2e-migration-test.mjs            # 端到端迁移链路（24 项�
   （见 `cross-compat-test.mjs`、`e2e-migration-test.mjs`），但界面在真机上的表现
   （不同厂商 ROM 的 WebView、软键盘、深色模式）尚未逐机型验证。
 - **迁移动辄需要口令**：这是安全设计而非缺陷；但确实意味着忘了口令就无法恢复。
+- **CLI 只能为它启动的子进程注入环境变量**：对已经打开的编辑器或 IDE 无效，需重启它们才会读到。
+- **CLI 不写入密钥库**：写入仍由图形端负责；在图形端新增密钥后，CLI 读到的是最新落盘内容。
 - **未做分页**：密钥数量上万时列表未优化。
 - **字体**：使用系统字体，未内嵌。
 
