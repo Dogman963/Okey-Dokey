@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  备份规则：显式排除密钥库与设备密钥。
+  密钥材料绝不进入 Android 自动云备份，跨设备迁移只走用户主动的 .okeyvault 导出。
+-->
+<full-backup-content>
+    <exclude domain="file" path="okey-dokey/device.key" />
+    <exclude domain="file" path="okey-dokey/vault.enc" />
+    <exclude domain="file" path="okey-dokey/background" />
+    <exclude domain="database" path="." />
+    <exclude domain="sharedpref" path="." />
+</full-backup-content>

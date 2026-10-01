@@ -1,0 +1,14 @@
+{
+  "appId": "local.okeydokey.vault",
+  "appName": "Okey Dokey",
+  "webDir": "www",
+  "loggingBehavior": "none",
+  "android": {
+    "allowMixedContent": false,
+    "captureInput": true,
+    "webContentsDebuggingEnabled": false
+  },
+  "server": {
+    "androidScheme": "https"
+  }
+}

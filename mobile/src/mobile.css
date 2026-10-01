@@ -1,0 +1,362 @@
+/* ============================================================
+   Okey Dokey 移动端适配层 / Android adaptation
+   在设计断点之外补充：安全区、触控目标、软键盘、移动端导航。
+   桌面样式在前，本文件在后，仅做覆盖与增强。
+   ============================================================ */
+
+/* ---------- 安全区变量 ---------- */
+
+:root {
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --tap: 44px; /* 安卓建议最小触控高度 */
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  overscroll-behavior: none;
+  touch-action: manipulation;
+}
+
+/* 移动端允许纵向滚动（桌面端 body 是 overflow:hidden 的窗口式布局） */
+.is-mobile body {
+  overflow: hidden;
+}
+
+.is-mobile .app {
+  height: 100dvh;
+}
+
+/* ---------- 触控：禁止长按选中与高亮 ---------- */
+
+.is-mobile button,
+.is-mobile .btn,
+.is-mobile .side-item,
+.is-mobile .seg button {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+  touch-action: manipulation;
+}
+
+/* 密钥明文允许长按选中（用户可能想手动复制） */
+.is-mobile .keyline .val {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* ---------- 弹层：移动端全屏化 ---------- */
+
+.is-mobile .overlay {
+  padding: 0;
+  align-items: flex-end;
+}
+
+.is-mobile .modal {
+  width: 100% !important;
+  max-width: 100%;
+  max-height: 92dvh;
+  border-radius: 18px 18px 0 0;
+  padding-bottom: var(--safe-bottom);
+  animation: sheet-up .22s cubic-bezier(.22, 1, .36, 1);
+}
+
+@keyframes sheet-up {
+  from { transform: translateY(14px); opacity: .6; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+.is-mobile .modal-bd {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  max-height: 68dvh;
+  padding-bottom: calc(12px + var(--safe-bottom));
+}
+
+.is-mobile .modal-ft {
+  position: sticky;
+  bottom: 0;
+  background: var(--surface);
+  padding-bottom: calc(12px + var(--safe-bottom));
+}
+
+/* 表单控件在移动端字号需 ≥16px，否则安卓 WebView 会聚焦时自动放大 */
+.is-mobile input,
+.is-mobile select,
+.is-mobile textarea {
+  font-size: 16px;
+  min-height: var(--tap);
+}
+
+.is-mobile .modal-hd,
+.is-mobile .modal-ft {
+  flex-shrink: 0;
+}
+
+/* 底部按钮区：主操作靠右且足够大 */
+.is-mobile .modal-ft .btn {
+  min-height: var(--tap);
+  padding-left: 18px;
+  padding-right: 18px;
+}
+
+/* ---------- 顶栏与内容 ---------- */
+
+.is-mobile .brand {
+  padding-top: calc(12px + var(--safe-top));
+  border-right: none;
+  border-bottom: 1px solid var(--line);
+}
+
+.is-mobile header {
+  padding-left: calc(12px + var(--safe-left));
+  padding-right: calc(12px + var(--safe-right));
+  flex-wrap: wrap;
+}
+
+/* 搜索框占满一行，其余控件次行 */
+.is-mobile .search-wrap {
+  flex: 1 1 100%;
+  min-width: 0;
+}
+
+.is-mobile main {
+  padding-left: calc(10px + var(--safe-left));
+  padding-right: calc(10px + var(--safe-right));
+}
+
+.is-mobile .grid {
+  padding-bottom: calc(16px + var(--safe-bottom));
+}
+
+/* 工具栏横向可滚，避免挤成一团 */
+.is-mobile .toolbar {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding-bottom: 4px;
+}
+
+.is-mobile .toolbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* 卡片操作按钮：高度到位，换行不溢出 */
+.is-mobile .actions {
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.is-mobile .actions .btn.sm {
+  min-height: 36px;
+  padding: 6px 12px;
+}
+
+/* 卡片内边距略收，窄屏信息密度更合适 */
+.is-mobile .card {
+  padding: 12px;
+}
+
+.is-mobile .card-top {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+}
+
+/* 密钥行允许折行，长密钥不撑破布局 */
+.is-mobile .keyline {
+  flex-wrap: wrap;
+  word-break: break-all;
+}
+
+/* ---------- 设置弹层的小屏细节 ---------- */
+
+.is-mobile .tabs {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.is-mobile .tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.is-mobile .tabs button {
+  min-height: 40px;
+  white-space: nowrap;
+}
+
+.is-mobile .swatches {
+  flex-wrap: wrap;
+}
+
+/* 颜色/滑块控件的触控尺寸 */
+.is-mobile input[type="color"] {
+  min-height: var(--tap);
+  width: 100%;
+}
+
+.is-mobile input[type="range"] {
+  min-height: var(--tap);
+}
+
+.is-mobile input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+}
+
+/* ---------- 提示条：修掉超出屏幕边界 ----------
+   桌面样式用 left:50% + transform:translateX(-50%) 做居中；移动端若只覆盖
+   left/right 而不清掉那个 translateX，整条提示会被再左推自身宽度的一半，
+   于是左半边被屏幕裁掉（上报的截图就是这个现象）。
+   这里显式复位 transform，改用左右留边距的拉伸式居中，并允许长文本换行。 */
+
+.is-mobile #toasts {
+  left: calc(12px + var(--safe-left));
+  right: calc(12px + var(--safe-right));
+  bottom: calc(16px + var(--safe-bottom));
+  transform: none;             /* 关键：清掉桌面端的 translateX(-50%) */
+  align-items: stretch;        /* 撑满可用宽度，而不是按内容宽度居中 */
+}
+
+.is-mobile .toast {
+  max-width: 100%;
+  min-width: 0;
+  text-align: center;
+  /* 长提示（如「已复制 · 将在 30 秒后清空剪贴板」）折行显示，不横向溢出 */
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  box-sizing: border-box;
+}
+
+/* ---------- 移动端界面精简 ----------
+   依据实机反馈做三件事：
+   1) 删去搜索框（占整行、手机上很少用）
+   2) 删去工具栏里多余的控件（服务商下拉与筛选条重复；密度切换在窄屏意义很小），
+      只留排序
+   3) 把原本被截成一半的筛选横拉栏整行放下，并把计数并入同一行
+   —— 以上均只在 .is-mobile 下生效，桌面端布局不变。 */
+
+/* 1. 搜索框 */
+.is-mobile .search-wrap {
+  display: none;
+}
+
+/* 2. 工具栏：服务商下拉与密度切换隐去，排序保留 */
+.is-mobile #providerSelect,
+.is-mobile #densitySeg {
+  display: none;
+}
+
+.is-mobile .toolbar {
+  flex-wrap: nowrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.is-mobile #sortSelect {
+  flex: 1 1 auto;
+  min-width: 0 !important;
+  min-height: 40px;
+  font-size: 15px;
+}
+
+.is-mobile #listCount {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+/* 3. 筛选条：整行放下、不再半截悬在边缘。
+   aside 在窄屏本被隐藏（styles.css 的 820px 断点），这里重新启用为横向条。 */
+.is-mobile .app {
+  grid-template-columns: 1fr;
+  grid-template-rows: auto auto auto 1fr;
+  grid-template-areas: "brand" "header" "filters" "main";
+}
+
+.is-mobile aside {
+  grid-area: filters;
+  display: block;
+  border-right: none;
+  border-bottom: 1px solid var(--line);
+  padding: 8px calc(12px + var(--safe-right)) 4px calc(12px + var(--safe-left));
+  overflow: hidden;
+}
+
+.is-mobile .side-title,
+.is-mobile .side-foot {
+  display: none;
+}
+
+.is-mobile #sideNav {
+  display: flex;
+  /* 换行展示全部，而不是横向滚动——
+     滚动会让最后一项被截在边缘（上报截图里的现象），
+     而删去搜索框与工具栏后已经有了足够的纵向空间。 */
+  flex-wrap: wrap;
+  gap: 8px;
+  overflow: visible;
+  padding: 4px 0 8px;
+}
+
+.is-mobile #sideNav::-webkit-scrollbar {
+  display: none;
+}
+
+.is-mobile #sideNav .side-item {
+  flex: 0 0 auto;
+  width: auto;
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 999px;
+  /* 横向条里只让正文显示，不要侧栏的整行宽度 */
+  white-space: nowrap;
+}
+
+.is-mobile #sideNav .side-title {
+  display: none;
+}
+
+/* side-item 内部的计数字段在胶囊里收紧一点 */
+.is-mobile #sideNav .side-item .ct {
+  margin-left: 2px;
+}
+
+/* ---------- 非常窄的屏幕（<=380px）---------- */
+
+@media (max-width: 380px) {
+  .is-mobile .brand-name { font-size: 15px; }
+  .is-mobile .brand-sub { font-size: 11px; }
+  .is-mobile .actions .btn.sm { padding: 6px 9px; font-size: 12px; }
+}
+
+/* ---------- 横屏：弹层不用满高 ---------- */
+
+@media (orientation: landscape) and (max-height: 520px) {
+  .is-mobile .modal { max-height: 96dvh; }
+  .is-mobile .modal-bd { max-height: 60dvh; }
+}
+
+/* ---------- 设置按钮的「有待导入文件」提示 ---------- */
+
+.attention {
+  position: relative;
+}
+
+.attention::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #E9B949;
+  box-shadow: 0 0 0 2px var(--surface);
+}

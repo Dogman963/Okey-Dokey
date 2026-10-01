@@ -9,8 +9,10 @@ dist-*/
 *.blockmap
 
 # ---- 应用运行时数据（含密钥，绝不入库）----
-# 应用的数据目录默认在 %APPDATA%\Okey Dokey\，此处再兜一层，防止误存到项目内
-vault/
+# 应用的数据目录默认在 %APPDATA%\Okey Dokey\，此处再兜一层，防止误存到项目内。
+# 注意必须用前导斜杠：写成 `vault/` 会匹配任意层级的同名目录，
+# 从而误伤 mobile/android/.../local/okeydokey/vault/MainActivity.java（安卓应用入口）。
+/vault/
 *.okeyvault
 
 # ---- 编辑器 / 系统 ----

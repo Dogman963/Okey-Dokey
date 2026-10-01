@@ -1,0 +1,28 @@
+# ---- 依赖 ----
+node_modules/
+
+# ---- 构建产物（可由 npm run build:www / cap sync 重新生成）----
+www/
+android/app/src/main/assets/public/
+android/app/build/
+android/build/
+android/.gradle/
+android/.kotlin/
+android/capacitor-cordova-android-plugins/
+local.properties
+android/local.properties
+android/app/src/main/assets/capacitor.config.json
+android/app/src/main/assets/capacitor.plugins.json
+*.apk
+*.aab
+
+# ---- 签名材料：绝不入库 ----
+android/keystore.properties
+*.jks
+*.keystore
+
+# ---- Gradle / 编辑器 ----
+.gradle/
+.idea/
+*.iml
+.kotlin/

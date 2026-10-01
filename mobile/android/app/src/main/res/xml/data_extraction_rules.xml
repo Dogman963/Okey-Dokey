@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Android 12+ 数据提取规则：同样排除密钥材料，避免通过云备份或换机拷贝泄露。
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="file" path="okey-dokey/device.key" />
+        <exclude domain="file" path="okey-dokey/vault.enc" />
+        <exclude domain="file" path="okey-dokey/background" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="file" path="okey-dokey/device.key" />
+        <exclude domain="file" path="okey-dokey/vault.enc" />
+        <exclude domain="file" path="okey-dokey/background" />
+    </device-transfer>
+</data-extraction-rules>

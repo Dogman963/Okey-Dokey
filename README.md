@@ -39,12 +39,12 @@ okey-dokey/
 ├─ build/                   electron-builder 图标资源（随仓库提交）
 │  ├─ icon.ico
 │  └─ icon.png
-├─ mobile/                  安卓端（Capacitor 工程，界面与桌面端共用同一份代码）
+├─ mobile/                  安卓端（Capacitor 工程，与上面共用同一份界面代码）
 │  ├─ src/
 │  │  ├─ platform/            平台层：加密、存储、导入导出（与桌面端格式兼容）
 │  │  ├─ boot.js              启动入口：注入 window.vault
 │  │  └─ mobile.css           移动端适配样式（安全区、触控目标、软键盘）
-│  ├─ scripts/                组装、图标生成、兼容性测试
+│  ├─ scripts/                组装、图标生成、兼容性与布局测试
 │  ├─ android/                原生工程（由 Capacitor 生成并配置）
 │  └─ capacitor.config.json
 ├─ docs/                    文档与截图
@@ -284,7 +284,7 @@ npm run shots                                  # 重新生成界面截图
 npm run icon                                   # 重新生成图标
 powershell -File scripts/verify-build.ps1 -Target unpacked   # 打包产物实机验证
 
-# 安卓端
+# 安卓端（mobile/ 位于本仓库内）
 cd mobile
 npm install                                    # 安装 Capacitor 与依赖
 npm run build:www                              # 组装 www/（复用桌面端界面代码）

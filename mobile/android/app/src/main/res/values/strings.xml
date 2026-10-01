@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Okey Dokey</string>
+    <string name="title_activity_main">Okey Dokey</string>
+    <string name="package_name">local.okeydokey.vault</string>
+    <string name="custom_url_scheme">local.okeydokey.vault</string>
+</resources>
