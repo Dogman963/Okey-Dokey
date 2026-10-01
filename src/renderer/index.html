@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self';" />
+  <title>Okey Dokey</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="bgLayer"></div>
+  <div id="bgDim"></div>
+
+  <div class="app">
+    <div class="brand">
+      <div class="logo">OK</div>
+      <div>
+        <div class="brand-name" data-i18n="appName">Okey Dokey</div>
+        <div class="brand-sub" data-i18n="tagline">大模型 API 密钥保险库</div>
+      </div>
+    </div>
+
+    <header>
+      <div class="search-wrap">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+          <circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path>
+        </svg>
+        <input class="search" id="search" type="text" autocomplete="off" spellcheck="false" />
+      </div>
+      <div class="spacer"></div>
+      <button class="btn icon" id="langBtn" title="Language">中/EN</button>
+      <button class="btn icon" id="settingsBtn" title="Settings">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9">
+          <circle cx="12" cy="12" r="3"></circle>
+          <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1A1.7 1.7 0 0 0 8.9 19a1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.7 1.7 0 0 0 5 8.9a1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9.5a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9v.1a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"></path>
+        </svg>
+      </button>
+      <button class="btn primary" id="addBtn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">
+          <path d="M12 5v14M5 12h14"></path>
+        </svg>
+        <span data-i18n="addKey">添加密钥</span>
+      </button>
+    </header>
+
+    <aside>
+      <div class="side-title" data-i18n="filters">筛选</div>
+      <div id="sideNav"></div>
+      <div class="side-foot">
+        <div class="count" id="vaultStat" style="padding:0 10px"></div>
+      </div>
+    </aside>
+
+    <main>
+      <div class="toolbar">
+        <select id="providerSelect" style="width:auto;min-width:170px"></select>
+        <select id="sortSelect" style="width:auto;min-width:140px"></select>
+        <div class="seg" id="densitySeg"></div>
+        <div class="spacer"></div>
+        <span class="count" id="listCount"></span>
+      </div>
+      <div class="grid" id="grid"></div>
+    </main>
+  </div>
+
+  <div id="modalRoot"></div>
+  <div id="toasts"></div>
+
+  <script src="../shared/providers.js"></script>
+  <script src="i18n.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

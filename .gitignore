@@ -1,0 +1,26 @@
+# ---- 依赖 ----
+node_modules/
+
+# ---- 构建产物（可重新生成，不入库）----
+# 目录版与安装版输出目录，由 `npm run dist` / `npm run dist:installer` 生成
+release/
+dist/
+dist-*/
+*.blockmap
+
+# ---- 应用运行时数据（含密钥，绝不入库）----
+# 应用的数据目录默认在 %APPDATA%\Okey Dokey\，此处再兜一层，防止误存到项目内
+vault/
+*.okeyvault
+
+# ---- 编辑器 / 系统 ----
+.vscode/
+.idea/
+*.swp
+Thumbs.db
+Desktop.ini
+
+# ---- 日志与临时文件 ----
+*.log
+.zwork/
+*.tmp
