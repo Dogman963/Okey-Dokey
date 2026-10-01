@@ -164,6 +164,53 @@ CLI 是纯 Node 脚本、零依赖，所以**即使不装 Electron 也能用**�
 
 其他：搜索覆盖名称/备注/标签/服务商/模型/密钥尾号；5 种排序与列表密度；收藏夹；显示密钥倒计时自动隐藏；复制后 30 秒清空剪贴板；掩码样式三选一；加密备份导出与导入。
 
+## 连通测试
+
+每条密钥卡片右上角有「测试」按钮：发一个**只消耗约 1 个 token** 的最小请求，
+验证「密钥 + 接口地址 + 模型名」三者组合是否真的能用。
+
+![连通测试](docs/images/ui-connectivity-test.png)
+
+用的是记录里填的**第一个常用模型**（该字段支持多个，用逗号/分号/顿号/换行分隔）。
+没填模型时会退化为只验证密钥（OpenAI 兼容服务商会调「列模型」接口）。
+
+### 失败会告诉你具体原因
+
+这一点比「测试失败」四个字有用得多——不同原因的处置方式完全不同：
+
+| 结果 | 含义 | 你该做什么 |
+| --- | --- | --- |
+| ✓ 连通正常，模型 X 可用 | 三者组合可用 | 无需处理 |
+| 密钥无效或无权限 | 401/403 | 重新申请或检查权限 |
+| 模型不可用 | 模型名错或无权限 | 改「常用模型」 |
+| 接口地址可能不正确 | 404 且与模型无关 | 检查 Base URL 路径 |
+| 被限流或额度不足 | 429 | 稍后再试或充值 |
+| 网络不通 / 请求超时 | 连不上或超时 15 秒 | 检查网络、代理 |
+| 公网地址用了 http，已阻止 | 明文策略拦截 | 改用 https |
+
+失败时还会附上**服务端返回的原始信息**，便于自行判断。
+
+### 关于明文 HTTP
+
+为保护密钥，**公网地址使用 http 会被拒绝**；本地与内网地址
+（`localhost` / `10.x` / `172.16-31.x` / `192.168.x` / `127.x`）不受限制。
+所以本地 Ollama 与内网自建端点可以正常测试。
+
+### 支持的服务商
+
+22 家全部支持，包括协议不兼容 OpenAI 的四家：
+
+| 服务商 | 协议 |
+| --- | --- |
+| OpenAI 及 17 家兼容服务商 | `Authorization: Bearer` + `/chat/completions` |
+| Anthropic | `x-api-key` + `anthropic-version` + `/v1/messages` |
+| Google Gemini | `?key=` 查询参数 + `:generateContent` |
+| Azure OpenAI | `api-key` 头 + `/openai/deployments/<部署名>/...` + `api-version` |
+| Cohere | `Authorization: Bearer` + `/v1/chat` |
+
+> 桌面端由主进程发请求（渲染层的 CSP 禁止外连，且这样密钥不回到渲染层）；
+> 安卓端走 `CapacitorHttp` 原生网络栈，绕开 WebView 的 CORS。
+
 ## 命令行取用（okey CLI）
 
 密钥存下来只是第一步，**能取出来用**才算有价值。`okey` 把「打开界面 → 显示 → 复制 → 切窗口 → 粘贴」变成一行命令。
@@ -289,6 +336,8 @@ node scripts/vault-tool.js plaintext-check some-file
 ```powershell
 npm run check                                  # 语法检查
 npm run test:cli
+node scripts/connectivity-test.mjs             # 连通测试功能（67 项）
+npx electron scripts/connectivity-ui-check.js  # 真实 Electron 里验证按钮与交互
 npm run test:smoke                             # 端到端界面测试（18 项）
 npm run test:startup                           # 启动耗时基准
 npm run test:doubleclick                       # 目录版真实启动方式验证
@@ -326,6 +375,8 @@ node scripts/touch-perf-test.mjs               # 触摸路径耗时（9 项）
   但不同厂商 ROM 的 WebView 渲染、字体与深色模式表现需实机确认。
 - **剪贴板 30 秒自动清空在切后台时可能不执行**：WebView 会冻结定时器。真正可靠需要原生
   `ClipboardManager` 的 `onPrimaryClipChanged` 监听；本项目刻意保持最小权限面，故如实记录。
+- **连通测试会消耗极少量额度**：每次约 1 个 token；未填「常用模型」时退化为只调「列模型」接口，不消耗生成额度。
+- **连通测试只验证「能用」，不验证「额度充足」**：有些服务商在余额不足时单次最小请求仍会通过，直到实际大量调用才报错。
 - **CLI 只能为它启动的子进程注入环境变量**：对已经打开的编辑器或 IDE 无效，需重启它们才会读到。
 - **CLI 不写入密钥库**：写入仍由图形端负责；在图形端新增密钥后，CLI 读到的是最新落盘内容。
 - **未做分页**：密钥数量上万时列表未优化。

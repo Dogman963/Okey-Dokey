@@ -33,7 +33,7 @@ function proxy(name) {
 const METHODS = [
   'status', 'info',
   'list', 'get', 'create', 'update', 'remove',
-  'copy', 'reveal',
+  'copy', 'reveal', 'test',
   'settings', 'saveSettings',
   'exportVault', 'importVault',
   'pickBackground', 'loadBackground', 'clearBackground',

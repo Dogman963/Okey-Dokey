@@ -1,6 +1,6 @@
 {
   "name": "okey-dokey-mobile",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "description": "Okey Dokey 安卓端 / Android build — 大模型 API 密钥保险库",
   "private": true,
   "type": "module",

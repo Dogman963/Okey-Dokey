@@ -9,6 +9,7 @@ const path = require('path');
 const fs = require('fs');
 const { Store } = require('./store');
 const { encryptWithPassphrase, decryptWithPassphrase } = require('./crypto');
+const { buildProbe, interpret, DEFAULT_TIMEOUT_MS } = require('../shared/connectivity');
 
 let win = null;
 let store = null;
@@ -107,6 +108,73 @@ handle('vault:reveal', (id) => {
 
 handle('settings:get', () => store.settings);
 handle('settings:save', (patch) => store.saveSettings(patch));
+
+/* 连通性测试：在主进程发请求。
+   原因：渲染层的 CSP 是 default-src 'self'，发不出外部请求；
+   而且这样密钥全程不必离开主进程。 */
+handle('vault:test', async (id) => {
+  const rec = store.data.records.find((x) => x.id === id);
+  if (!rec) throw new Error('NOT_FOUND');
+
+  const probe = buildProbe({ ...rec, credential: store.getCredential(id) });
+  if (probe.error) {
+    // 统一处理所有「未发出请求就判定为不可测」的情形。
+    // message/detail 优先用 probe 自带的说明（例如明文拦截会解释原因），
+    // 否则回退到按错误码给文案——不能把「明文被拦」错报成「没有密钥」。
+    const fallback = {
+      NO_BASE_URL: '未填写接口地址，无法测试',
+      NO_KEY: '该记录没有密钥内容',
+      MODEL_REQUIRED: '该服务商需要填写模型名（Azure 用部署名当作模型名）',
+      CLEARTEXT_BLOCKED: '该地址是公网却使用 http（明文），已阻止以保护密钥',
+      BAD_URL: '接口地址格式不正确'
+    };
+    return {
+      ok: false,
+      kind: probe.error,
+      message: probe.message || fallback[probe.error] || '无法测试',
+      detail: probe.detail || ''
+    };
+  }
+
+  const started = Date.now();
+  const timeoutMs = probe.timeoutMs || DEFAULT_TIMEOUT_MS;
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+    let res;
+    try {
+      res = await fetch(probe.url, {
+        method: probe.method,
+        headers: probe.headers,
+        body: probe.body ? JSON.stringify(probe.body) : undefined,
+        signal: ctrl.signal,
+        redirect: 'follow'
+      });
+    } finally {
+      clearTimeout(timer);
+    }
+    const text = await res.text();
+    const verdict = interpret(res.status, text, probe);
+    return {
+      ...verdict,
+      status: res.status,
+      elapsedMs: Date.now() - started,
+      modelTested: probe.modelTested || null
+    };
+  } catch (err) {
+    const msg = String((err && err.message) || err);
+    const aborted = /abort/i.test(msg) || (err && err.name === 'AbortError');
+    return {
+      ok: false,
+      kind: aborted ? 'TIMEOUT' : 'NETWORK',
+      message: aborted
+        ? `请求超时（${Math.round(timeoutMs / 1000)} 秒）`
+        : `网络不通或无法连接：${msg}`,
+      detail: '',
+      elapsedMs: Date.now() - started
+    };
+  }
+});
 
 /* 背景图：复制进应用数据目录，渲染层通过 IPC 取 data URL */
 handle('app:info', () => ({

@@ -20,6 +20,7 @@ const state = {
   sort: 'updated',
   density: 'comfortable',
   revealed: new Map(),   // id -> { value, expiresAt, timer }
+  tests: new Map(),      // id -> { running, ok, kind, message, detail, elapsedMs, modelTested }
   bgDataUrl: '',
   info: null,
   status: null
@@ -292,6 +293,8 @@ function card(rec) {
   const hue = providerHue(rec.provider);
   const p = provider(rec.provider);
 
+  const tst = state.tests.get(rec.id);
+
   el.innerHTML = `
     <div class="card-top">
       <div class="card-head">
@@ -307,6 +310,9 @@ function card(rec) {
         </div>
       </div>
       <div class="actions">
+        <button class="btn sm test-btn${tst && tst.ok ? ' ok' : ''}${tst && tst.ok === false ? ' fail' : ''}"
+                data-act="test" title="${esc(window.t('testTitle'))}"
+                ${tst && tst.running ? 'disabled' : ''}>${esc(tst && tst.running ? window.t('testing') : window.t('test'))}</button>
         <button class="btn sm" data-act="reveal">${esc(rev ? window.t('hide') : window.t('reveal'))}</button>
         <button class="btn sm" data-act="copy">${esc(window.t('copy'))}</button>
         <button class="btn sm" data-act="edit">${esc(window.t('edit'))}</button>
@@ -320,7 +326,8 @@ function card(rec) {
 ${IS_MOBILE ? '' : `      <span>${esc(window.t('usage'))}: ${rec.usageCount ? rec.usageCount + ' ' + window.t('times') : esc(window.t('neverUsed'))}</span>`}
       ${rec.baseUrl ? `<span>${esc(rec.baseUrl)}</span>` : ''}
       ${rec.models ? `<span>${esc(rec.models)}</span>` : ''}
-    </div>`;
+    </div>
+    ${tst && !tst.running ? testResultHtml(tst) : ''}`;
 
   el.querySelector('[data-act="reveal"]').onclick = () => toggleReveal(rec.id);
   el.querySelector('[data-act="copy"]').onclick = () => doCopy(rec.id);
@@ -331,9 +338,85 @@ ${IS_MOBILE ? '' : `      <span>${esc(window.t('usage'))}: ${rec.usageCount ? re
     await refresh(); render();
   };
   el.querySelector('[data-act="del"]').onclick = () => confirmDelete(rec);
+  el.querySelector('[data-act="test"]').onclick = () => runTest(rec);
 
   if (rev) startTimer(rec.id, el.querySelector(`[data-timer="${rec.id}"]`));
   return el;
+}
+
+/* ------------------------------ 连通性测试 ------------------------------ */
+
+/**
+ * 把测试结果渲染成卡片里的一段。
+ *
+ * 为什么要把失败分这么多种：它们的处置方式完全不同——网络不通要查网络/代理，
+ * 密钥无效要重新申请，模型不存在要改模型名，限流只是暂时现象。
+ * 全都显示成「测试失败」等于没帮上忙。
+ */
+function testResultHtml(tst) {
+  if (tst.kind === 'NO_BASE_URL') {
+    return `<div class="test-result warn"><span class="ico">!</span><span>${esc(window.t('testNoBaseUrl'))}</span></div>`;
+  }
+  if (tst.kind === 'CLEARTEXT_BLOCKED') {
+    return `<div class="test-result warn">
+      <span class="ico">!</span>
+      <span>${esc(window.t('testCleartext'))}
+        <span class="sub">${esc(window.t('testCleartextHint'))}</span>
+      </span></div>`;
+  }
+
+  const ok = !!tst.ok;
+  const icon = ok ? '✓' : '✗';
+
+  // 成功时若验证了模型名，把它说出来（用户最关心这个）
+  let label;
+  if (ok) {
+    label = tst.modelTested
+      ? window.t('testOkWithModel', { m: tst.modelTested })
+      : window.t('testOkNoModel');
+  } else {
+    const map = {
+      AUTH: 'testAuth', NO_MODEL: 'testNoModel', RATE_LIMIT: 'testRateLimit',
+      SERVER: 'testServer', NETWORK: 'testNetwork', TIMEOUT: 'testTimeout',
+      BAD_URL: 'testBadUrl', BAD_REQUEST: 'testFailed', HTTP: 'testFailed',
+      MODEL_REQUIRED: 'testNoModel'
+    };
+    label = window.t(map[tst.kind] || 'testFailed');
+  }
+
+  const bits = [];
+  if (tst.elapsedMs != null) bits.push(esc(window.t('testElapsed', { n: tst.elapsedMs })));
+  if (tst.status != null) bits.push(`HTTP ${tst.status}`);
+
+  // 服务端返回的原始说明通常最具体，附在下面供排查
+  const serverSaid = tst.detail
+    ? `<div class="test-detail">${esc(window.t('testServerSaid'))} ${esc(String(tst.detail).slice(0, 300))}</div>`
+    : '';
+
+  return `<div class="test-result ${ok ? 'ok' : 'fail'}">
+    <span class="ico">${icon}</span>
+    <span>${esc(label)}${bits.length ? ` <span class="sub">${bits.join(' · ')}</span>` : ''}
+      ${serverSaid}
+    </span></div>`;
+}
+
+/** 执行一次连通性测试。结果写进 state.tests 后局部重绘。 */
+async function runTest(rec) {
+  const prev = state.tests.get(rec.id);
+  if (prev && prev.running) return;   // 防连点
+
+  state.tests.set(rec.id, { running: true });
+  render();
+
+  let res;
+  try {
+    res = await call(api.test, rec.id);
+  } catch (err) {
+    res = { ok: false, kind: 'HTTP', message: String(err && err.message || err), detail: '' };
+  }
+
+  state.tests.set(rec.id, { running: false, ...res });
+  render();
 }
 
 /* ------------------------------ 显示与复制 ------------------------------ */

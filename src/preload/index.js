@@ -22,6 +22,9 @@ contextBridge.exposeInMainWorld('vault', {
   copy: (id) => call('vault:copy', id),
   reveal: (id) => call('vault:reveal', id),
 
+  // 连通性测试：在主进程发请求（渲染层受 CSP 限制，发不出外部请求）
+  test: (id) => call('vault:test', id),
+
   // 设置
   settings: () => call('settings:get'),
   saveSettings: (patch) => call('settings:save', patch),

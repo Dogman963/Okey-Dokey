@@ -233,6 +233,7 @@ globalThis.vault = {
   },
   copy: async () => { calls.push('copy'); return ok({ copied: true, autoClearSeconds: 30 }); },
   reveal: async (id) => { calls.push('reveal'); const r = state.records.find((x) => x.id === id); return ok({ value: r.credential }); },
+  test: async (id) => { calls.push('test'); return ok({ ok: true, kind: 'OK', message: '连通正常', detail: '', elapsedMs: 12, status: 200, modelTested: 'stub-model' }); },
   settings: async () => ok(state.settings),
   saveSettings: async (p) => { calls.push('saveSettings'); state.settings = { ...state.settings, ...p }; return ok(state.settings); },
   exportVault: async (o) => { calls.push('exportVault:' + o.mode); return ok({ path: 'okey-dokey-backup-2026-10-01.okeyvault', count: state.records.length, encrypted: o.mode !== 'plain' }); },
@@ -270,6 +271,36 @@ const provided = new Set(Object.keys(globalThis.vault));
 const missing = [...usedApi].filter((m) => !provided.has(m));
 check('界面调用的接口移动端都提供', missing.length === 0, '缺失: ' + missing.join(', '));
 console.log(`      界面使用 ${usedApi.size} 个方法: ${[...usedApi].sort().join(', ')}`);
+
+// 关键回归闸门：平台层实现了某方法、但 boot.js 的 METHODS 白名单没列它，
+// 代理层就不会转发 —— 界面会静默拿到 NOT_SUPPORTED，
+// 功能上等于没做。这类「实现了但忘了接线」的漏洞必须单独盯住。
+{
+  const bootSrc = fs.readFileSync(path.join(MOBILE, 'src', 'boot.js'), 'utf8');
+  const apiSrc = fs.readFileSync(path.join(MOBILE, 'src', 'platform', 'vault-api.mjs'), 'utf8');
+  const wl = (bootSrc.match(/const METHODS = \[([\s\S]*?)\]/) || ['', ''])[1];
+  const whitelist = new Set([...wl.matchAll(/'([^']+)'/g)].map((m) => m[1]));
+  // 平台层公开方法：形如 `    name: (...) =>` 或 `    name: async (...) =>`。
+  // 必须限定后面紧跟参数列表/箭头，否则会把对象字面量里的普通属性
+  // （如 { path: 'x', data: 'y' }）误判成方法。
+  const implemented = new Set(
+    [...apiSrc.matchAll(/^ {4}([a-zA-Z][\w]*):\s*(?:async\s*)?\([^)]*\)\s*=>/gm)].map((m) => m[1])
+  );
+
+  // 仅供 boot.js 内部直接调用的方法（不经过给界面的代理），无需列在白名单。
+  // 目前只有 flushPending：切到后台时落盘，由 boot.js 自己 await 真实实现。
+  const INTERNAL_ONLY = new Set(['flushPending']);
+
+  const notWired = [...implemented].filter((m) => !whitelist.has(m) && !INTERNAL_ONLY.has(m));
+  const notImpl = [...whitelist].filter((m) => !implemented.has(m));
+  check('平台层实现的方法都已在 boot 白名单接线', notWired.length === 0,
+    '未接线（界面会拿到 NOT_SUPPORTED）: ' + notWired.join(', '));
+  check('boot 白名单里的方法都确有实现', notImpl.length === 0,
+    '白名单里无实现: ' + notImpl.join(', '));
+  check('内部专用方法未被误列入白名单',
+    [...INTERNAL_ONLY].every((m) => !whitelist.has(m)),
+    '被误列: ' + [...INTERNAL_ONLY].filter((m) => whitelist.has(m)).join(', '));
+}
 
 section('2. 载入共用界面代码');
 

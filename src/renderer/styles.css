@@ -437,6 +437,103 @@ code.path {
   max-width: 70vw;
 }
 
+/* ---------- 连通性测试 / connectivity test ---------- */
+
+/* 测试按钮放在操作按钮组里，不做绝对定位——
+   实测过右上角浮动方案会与操作区重叠（.card-top 是 flex，操作组本身就在右上方）。 */
+/* 按钮做得比普通操作按钮更紧凑：操作组现在有 6 个按钮，
+   收紧尺寸可以延缓窄窗口下的换行。 */
+.test-btn {
+  min-height: 28px;
+  padding: 4px 9px;
+  font-size: 12px;
+}
+
+/* 状态只用**文字颜色**表达，边框保持中性。
+   原本给失败态加红边框，但它右侧紧邻红色的「删除」按钮，
+   两种含义相邻会让人误读；改成克制一点的表达。 */
+.test-btn.ok {
+  color: #1F8A5B;
+  font-weight: 600;
+}
+
+.test-btn.fail {
+  color: #C0392B;
+  font-weight: 600;
+}
+
+.test-btn[disabled] {
+  opacity: .6;
+  cursor: default;
+}
+
+.test-result {
+  margin-top: 10px;
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  font-size: 12.5px;
+  line-height: 1.6;
+  padding: 9px 11px;
+  border-radius: 9px;
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--text) 3%, transparent);
+}
+
+.test-result .ico {
+  flex: 0 0 auto;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.test-result.ok {
+  color: #1F7A52;
+  border-color: color-mix(in srgb, #28A06B 35%, var(--line));
+  background: color-mix(in srgb, #28A06B 8%, transparent);
+}
+
+.test-result.fail {
+  color: #B23A3A;
+  border-color: color-mix(in srgb, #D94A4A 35%, var(--line));
+  background: color-mix(in srgb, #D94A4A 8%, transparent);
+}
+
+.test-result.warn {
+  color: #8A5A18;
+  border-color: color-mix(in srgb, #E0A030 40%, var(--line));
+  background: color-mix(in srgb, #E0A030 10%, transparent);
+}
+
+/* 次要信息（耗时 / HTTP 状态 / 服务端原话） */
+.test-result .sub {
+  opacity: .75;
+  font-size: 11.5px;
+}
+
+.test-detail {
+  margin-top: 4px;
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  font-size: 11px;
+  opacity: .8;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  /* 有些网关会返回整页 HTML 错误，限制高度避免把卡片撑得很长 */
+  max-height: 96px;
+  overflow-y: auto;
+}
+
+/* ---------- 移动端：触控目标更大、结果区更紧凑 ---------- */
+
+.is-mobile .test-btn {
+  min-height: 32px;      /* 触控目标 */
+  padding: 5px 11px;
+}
+
+.is-mobile .test-result {
+  font-size: 12px;
+  padding: 8px 10px;
+}
+
 /* ---------- 滚动条 / scrollbar ---------- */
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-thumb {

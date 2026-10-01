@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  网络安全配置。
+
+  先说清楚一件事：Android 的 network-security-config **不支持按网段通配**
+  （只能逐个列 domain），而用户的自建端点可能是 192.168.x.y 里的任意地址。
+  因此这里无法用系统配置做到「只放开私有网段」。
+
+  采用的方案：
+    - 系统层面允许明文（cleartextTrafficPermitted="true"），否则本地 Ollama
+      与任意内网端点都无法工作；
+    - 真正的把关放在**应用层**（src/shared/connectivity.js 的 checkCleartext）：
+      http:// 只允许 localhost / 私有网段，公网明文直接拒绝并解释原因。
+
+  为什么应用层把关在这里是充分的：应用内没有第三方脚本，所有请求都由本项目
+  自己的代码发起，不存在绕过路径。相比枚举几个网关 IP，这个做法能真正覆盖
+  任意私有地址，且拒绝时会给出明确原因而不是静默失败。
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

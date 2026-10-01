@@ -10,10 +10,12 @@ import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
 import { Clipboard } from '@capacitor/clipboard';
 import { Share } from '@capacitor/share';
 import { App } from '@capacitor/app';
+import { CapacitorHttp } from '@capacitor/core';
 import { Store } from './store.mjs';
 import { encryptWithPassphrase, decryptWithPassphrase, isExportPackage, b64decode, b64encode } from './crypto.mjs';
+import { buildProbe, interpret, DEFAULT_TIMEOUT_MS } from '../../../src/shared/connectivity.js';
 
-const APP_VERSION = '1.2.2';
+const APP_VERSION = '1.2.3';
 const BG_DIR = 'background';
 
 let store = null;
@@ -240,6 +242,64 @@ export async function createVaultApi() {
       }
       const counts = await store.replaceAll(payload, o.mode === 'replace' ? 'replace' : 'merge');
       return { counts, mode: o.mode === 'replace' ? 'replace' : 'merge' };
+    }),
+
+    /* --- 连通性测试：走原生网络栈（CapacitorHttp），绕开 WebView 的 CORS ----
+       若用 WebView 的 fetch，几乎所有的 API 都会因缺 Access-Control-Allow-Origin 失败，
+       那会把「服务商不允许浏览器直连」误报成「你的密钥有问题」。 */
+    test: (id) => guard(async () => {
+      const rec = store.get(id);
+      if (!rec) throw new Error('NOT_FOUND');
+
+      const probe = buildProbe({ ...rec, credential: store.getCredential(id) });
+      if (probe.error) {
+        const fallback = {
+          NO_BASE_URL: '未填写接口地址，无法测试',
+          NO_KEY: '该记录没有密钥内容',
+          MODEL_REQUIRED: '该服务商需要填写模型名（Azure 用部署名当作模型名）',
+          CLEARTEXT_BLOCKED: '该地址是公网却使用 http（明文），已阻止以保护密钥',
+          BAD_URL: '接口地址格式不正确'
+        };
+        return {
+          ok: false,
+          kind: probe.error,
+          message: probe.message || fallback[probe.error] || '无法测试',
+          detail: probe.detail || ''
+        };
+      }
+
+      const started = Date.now();
+      const timeoutMs = probe.timeoutMs || DEFAULT_TIMEOUT_MS;
+      try {
+        const res = await CapacitorHttp.request({
+          url: probe.url,
+          method: probe.method,
+          headers: probe.headers,
+          data: probe.body || undefined,
+          connectTimeout: timeoutMs,
+          readTimeout: timeoutMs
+        });
+        const bodyText = typeof res.data === 'string' ? res.data : JSON.stringify(res.data);
+        const verdict = interpret(res.status, bodyText, probe);
+        return {
+          ...verdict,
+          status: res.status,
+          elapsedMs: Date.now() - started,
+          modelTested: probe.modelTested || null
+        };
+      } catch (err) {
+        const msg = String((err && err.message) || err);
+        const timedOut = /timeout|timed out/i.test(msg);
+        return {
+          ok: false,
+          kind: timedOut ? 'TIMEOUT' : 'NETWORK',
+          message: timedOut
+            ? `请求超时（${Math.round(timeoutMs / 1000)} 秒）`
+            : `网络不通或无法连接：${msg}`,
+          detail: '',
+          elapsedMs: Date.now() - started
+        };
+      }
     }),
 
     /* --- 桌面端专属方法：移动端给出无害等价实现，保证界面不报错 --- */
