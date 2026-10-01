@@ -155,6 +155,32 @@ app.whenReady().then(async () => {
       const r = await window.vault.test(rec.id);
       return r.ok ? { kind: r.data.kind, status: r.data.status, message: r.data.message } : r;
     `);
+
+    // 多窗口宽度下的布局回归：操作组现在有 6 个按钮，
+    // 窄窗口下可能换行或溢出，这里逐一验证（之前是靠临时脚本排查的，现改为常驻断言）。
+    results.widths = [];
+    for (const w of [1180, 1000, 900, 820, 700, 560, 420, 360]) {
+      win.setSize(w, 800);
+      await new Promise((r) => setTimeout(r, 260));
+      const r = await run(`
+        const card = document.querySelector('.card');
+        if (!card) return { error: 'no card' };
+        const cardR = card.getBoundingClientRect();
+        const btns = [...card.querySelectorAll('.actions .btn')];
+        const rects = btns.map(b => { const x = b.getBoundingClientRect();
+          return { t: b.textContent.trim(), l: x.left, r: x.right, top: x.top, bottom: x.bottom }; });
+        const overflow = rects.filter(x => x.r > cardR.right + 1).map(x => x.t);
+        let clash = [];
+        for (let i = 0; i < rects.length; i++) for (let j = i + 1; j < rects.length; j++) {
+          const a = rects[i], b = rects[j];
+          if (!(a.r <= b.l || a.l >= b.r || a.bottom <= b.top || a.top >= b.bottom)) clash.push(a.t + '/' + b.t);
+        }
+        return { btnCount: btns.length, overflow, clash };
+      `);
+      results.widths.push({ win: w, ...r });
+    }
+    // 恢复默认宽度
+    win.setSize(1180, 800);
   } catch (err) {
     errors.push('script: ' + err.message);
   } finally {
