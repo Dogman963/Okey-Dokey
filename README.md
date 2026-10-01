@@ -47,6 +47,22 @@ okey-dokey/
    └─ Okey-Dokey-Setup-*.exe  安装版
 ```
 
+## 下载
+
+Windows 安装版已发布到 Releases：
+
+**https://github.com/Dogman963/Okey-Dokey/releases/tag/v1.0.0**
+
+下载 `Okey-Dokey-Setup-1.0.0.exe`（106 MB）直接运行。
+
+SHA256 校验值：
+
+```
+FAE88AED3B0BF4E297DFA09F65BA372874BF5A846FF1FCEE6CC4EDC15ABB502D
+```
+
+> 未做代码签名，首次运行可能提示「未知发布者」，点「更多信息 → 仍要运行」即可。
+
 ## 快速开始
 
 ```powershell
